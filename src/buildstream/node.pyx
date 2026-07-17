@@ -49,6 +49,7 @@ Class Reference
 """
 
 import string
+import warnings
 
 from ._exceptions import LoadError
 from .exceptions import LoadErrorReason
@@ -1416,6 +1417,10 @@ cdef class SequenceNode(Node):
         if type(target_value) is SequenceNode and key == "(?)":
             (<SequenceNode> target.value[key]).value.extend(self.value)
         else:
+            if key in target.value:
+                # FIXME I am not sure how to get Project._warning_is_fatal context down here.
+                #   something like Loader.warn or Plugin.warn
+                warnings.warn("{}: Implicit list replace onto {}".format(self.get_provenance(),target.value[key].get_provenance()))
             # Looks good, clobber it
             target.value[key] = self.clone()
 

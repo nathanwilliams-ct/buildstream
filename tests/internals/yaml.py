@@ -11,6 +11,7 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 #
+import warnings
 import os
 from io import StringIO
 
@@ -222,9 +223,6 @@ def test_composite_preserve_originals(datafiles):
         # Test results of compositing with the (=) overwrite directive
         ("listoverwrite.yaml", 0, 2, "overwrite1", "listoverwrite.yaml", 5, 10),
         ("listoverwrite.yaml", 1, 2, "overwrite2", "listoverwrite.yaml", 7, 10),
-        # Test results of compositing without any directive, implicitly overwriting
-        ("implicitoverwrite.yaml", 0, 2, "overwrite1", "implicitoverwrite.yaml", 4, 8),
-        ("implicitoverwrite.yaml", 1, 2, "overwrite2", "implicitoverwrite.yaml", 6, 8),
     ],
 )
 def test_list_composition(datafiles, filename, tmpdir, index, length, mood, prov_file, prov_line, prov_col):
@@ -234,7 +232,9 @@ def test_list_composition(datafiles, filename, tmpdir, index, length, mood, prov
     base = _yaml.load(base_file, shortname="basics.yaml")
     overlay = _yaml.load(overlay_file, shortname=filename)
 
-    overlay._composite(base)
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        overlay._composite(base)
 
     children = base.get_sequence("children")
     assert len(children) == length
@@ -242,6 +242,72 @@ def test_list_composition(datafiles, filename, tmpdir, index, length, mood, prov
 
     assert child.get_str("mood") == mood
     assert_provenance(prov_file, prov_line, prov_col, child.get_node("mood"))
+
+# Test results of compositing without any directive, implicitly overwriting
+#
+# This should throw a warning that can be made fatal
+#
+# See test_list_composition for param details
+@pytest.mark.datafiles(os.path.join(DATA_DIR))
+@pytest.mark.parametrize(
+    "filename,index,length,mood,prov_file,prov_line,prov_col",
+    [
+        # Test results of compositing without any directive, implicitly overwriting
+        ("implicitoverwrite.yaml", 0, 2, "overwrite1", "implicitoverwrite.yaml", 4, 8),
+        ("implicitoverwrite.yaml", 1, 2, "overwrite2", "implicitoverwrite.yaml", 6, 8),
+    ],
+)
+def test_list_composition_implicit_overwrite(datafiles, filename, tmpdir, index, length, mood, prov_file, prov_line, prov_col):
+    base_file = os.path.join(datafiles, "basics.yaml")
+    overlay_file = os.path.join(datafiles, filename)
+
+    base = _yaml.load(base_file, shortname="basics.yaml")
+    overlay = _yaml.load(overlay_file, shortname=filename)
+
+    with pytest.warns() as warn_record:
+        overlay._composite(base)
+
+    assert len(warn_record) == 1
+    assert "Implicit list replace" in str(warn_record[0].message)
+
+    children = base.get_sequence("children")
+    assert len(children) == length
+    child = children.mapping_at(index)
+
+    assert child.get_str("mood") == mood
+    assert_provenance(prov_file, prov_line, prov_col, child.get_node("mood"))
+
+# Test for list composition where overwrite list is not in the base.
+#
+# See test_list_composition for param details
+@pytest.mark.datafiles(os.path.join(DATA_DIR))
+@pytest.mark.parametrize(
+    "filename,index,length,mood,prov_file,prov_line,prov_col",
+    [
+        ("implicitoverwrite2.yaml", 0, 2, "overwrite1", "implicitoverwrite2.yaml", 4, 8),
+        ("implicitoverwrite2.yaml", 1, 2, "overwrite2", "implicitoverwrite2.yaml", 6, 8),
+    ],
+)
+def test_list_composition_no_overwrite(datafiles, filename, tmpdir, index, length, mood, prov_file, prov_line, prov_col):
+    base_file = os.path.join(datafiles, "basics.yaml")
+    overlay_file = os.path.join(datafiles, filename)
+
+    base = _yaml.load(base_file, shortname="basics.yaml")
+    overlay = _yaml.load(overlay_file, shortname=filename)
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        overlay._composite(base)
+
+    children = base.get_sequence("children")
+    assert len(children) == 7
+
+    adults = base.get_sequence("adults")
+    assert len(adults) == length
+    vegetable = adults.mapping_at(index)
+
+    assert vegetable.get_str("mood") == mood
+    assert_provenance(prov_file, prov_line, prov_col, vegetable.get_node("mood"))
 
 
 # Test that overwriting a list with an empty list works as expected.
