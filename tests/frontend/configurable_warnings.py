@@ -15,6 +15,7 @@
 # Pylint doesn't play well with fixtures and dependency injection from pytest
 # pylint: disable=redefined-outer-name
 
+import logging
 import os
 
 import pytest
@@ -22,7 +23,7 @@ import pytest
 from buildstream.plugin import CoreWarnings
 from buildstream.exceptions import ErrorDomain
 from buildstream import _yaml
-from buildstream._testing.runcli import cli  # pylint: disable=unused-import
+from buildstream._testing.runcli import cli, Result  # pylint: disable=unused-import
 
 TOP_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), "configuredwarning")
 
@@ -69,3 +70,20 @@ def test_fatal_warnings(cli, datafiles, element_name, fatal_warnings, expect_fat
         result.assert_main_error(error_domain, None, "Expected fatal execution")
     else:
         result.assert_success("Unexpected fatal execution")
+
+
+
+@pytest.mark.datafiles(TOP_DIR)
+def test_loader_warning(cli, datafiles):
+
+    # Does the warning show up when it's supposed to
+    project_path = build_project(datafiles, [])
+    result: Result = cli.run(project=project_path, args=["build", "implicit.bst"])
+    result.assert_success("Unexpected fatal execution")
+    assert "UserWarning" in result.stderr, "Warning not logged correctly"  # ty:ignore[unsupported-operator]
+
+    # Make it Fatal
+    project_path = build_project(datafiles, ["UserWarning"])
+    result: Result = cli.run(project=project_path, args=["build", "implicit.bst"])
+    result.assert_main_error(ErrorDomain.LOAD, UserWarning.__name__, "Expected fatal execution")
+    assert "Failure" in result.stderr, "Warning not logged correctly"  # ty:ignore[unsupported-operator]

@@ -15,7 +15,8 @@
 #        Tristan Van Berkom <tristan.vanberkom@codethink.co.uk>
 #        Tiago Gomes <tiago.gomes@codethink.co.uk>
 
-from typing import TYPE_CHECKING, Optional, Dict, Union, List, Sequence, Callable
+import warnings
+from typing import TYPE_CHECKING, Optional, Dict, Union, List, Sequence, Callable, TextIO
 
 import os
 import urllib.parse
@@ -885,6 +886,19 @@ class Project:
 
         # Fatal warnings
         self._fatal_warnings = pre_config_node.get_str_list("fatal-warnings", default=[])
+
+        # Handle warnings manually,
+        # - by checking if they are in the fatal warning list and throwing an Error
+        # - or log via our messenger instead of sending directly to stderr
+        #
+        # Maybe we also setup filters here: https://docs.python.org/3/library/warnings.html#warnings.filterwarnings
+        def handle_warnings(message: Warning | str, category: type[Warning], filename: str, lineno: int, file: TextIO | None = None, line: str | None = None) -> None:
+            if category.__name__ in self._fatal_warnings:
+                raise LoadError(message,category.__name__)
+
+            self._context.messenger.warn(f"{category.__name__}: {message}")
+
+        warnings.showwarning = handle_warnings  # ty:ignore[invalid-assignment]
 
         # Junction configuration
         junctions_node = pre_config_node.get_mapping("junctions", default={})

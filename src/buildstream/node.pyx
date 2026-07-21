@@ -1420,6 +1420,7 @@ cdef class SequenceNode(Node):
             if key in target.value:
                 # FIXME I am not sure how to get Project._warning_is_fatal context down here.
                 #   something like Loader.warn or Plugin.warn
+                # FIXME Use a custom warning type instead of UserWarning
                 warnings.warn("{}: Implicit list replace onto {}".format(self.get_provenance(),target.value[key].get_provenance()))
             # Looks good, clobber it
             target.value[key] = self.clone()
