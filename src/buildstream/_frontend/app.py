@@ -17,9 +17,9 @@
 from contextlib import contextmanager
 import os
 import sys
-import threading
 import traceback
 import datetime
+import threading
 from textwrap import TextWrapper
 import click
 from click import UsageError

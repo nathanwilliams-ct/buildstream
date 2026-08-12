@@ -122,8 +122,9 @@ class _Scope(Enum):
     NONE: int
 
 class _KeyStrength(Enum):
-    STRONG: int
-    WEAK: int
+    STRONG = 1
+    WEAK = 2
+    STRICT = 3
 
 class _DisplayKey:
     full: str
