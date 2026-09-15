@@ -58,7 +58,7 @@ ctypedef RepresenterState (*representer_action)(Representer, object)
 # All streams MUST represent a single document which must be a Mapping.
 # Anything else is considered an error.
 #
-# Mappings must only have string keys, values are always represented as
+# Mappings must only have string keys, values are aobjectlways represented as
 # strings if they are scalar, or else as simple dictionaries and lists.
 #
 cdef class Representer:

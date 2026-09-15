@@ -32,6 +32,8 @@ from ._project import Project
 TNode = TypeVar("TNode", bound="Node")
 TValidNodeValue = TypeVar("TValidNodeValue", int, str, bool, Mapping, Sequence)
 
+_SYNTHETIC_FILE_INDEX = -1
+
 class ProvenanceInformation: ...
 
 class Node:
